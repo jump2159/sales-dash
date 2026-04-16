@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>영업 대시보드</title>
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      :root {
+        --sf-bg: #f4f6f9;
+        --sf-card: #ffffff;
+        --sf-primary: #0176d3;
+        --sf-primary-soft: #d8ecff;
+        --sf-text: #181818;
+        --sf-subtext: #5f6368;
+        --sf-border: #e0e5ee;
+        --sf-success: #2e844a;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Noto Sans KR", sans-serif;
+        background: var(--sf-bg);
+        color: var(--sf-text);
+      }
+
+      .topbar {
+        background: linear-gradient(90deg, #0176d3, #0b5cab);
+        color: #fff;
+        padding: 16px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .topbar h1 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .topbar .date {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      .btn {
+        border: 0;
+        border-radius: 10px;
+        padding: 9px 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .btn-primary {
+        background: #fff;
+        color: #0b5cab;
+      }
+
+      .container {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 20px;
+      }
+
+      .kpi-card {
+        background: var(--sf-card);
+        border: 1px solid var(--sf-border);
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 3px 12px rgba(24, 24, 24, 0.06);
+      }
+
+      .kpi-label {
+        color: var(--sf-subtext);
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+
+      .kpi-value {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.4px;
+      }
+
+      .kpi-delta {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--sf-success);
+      }
+
+      .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+
+      .update-panel {
+        margin-bottom: 14px;
+      }
+
+      .update-form-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .field label {
+        font-size: 13px;
+        color: var(--sf-subtext);
+      }
+
+      .field input,
+      .field textarea {
+        border: 1px solid var(--sf-border);
+        border-radius: 10px;
+        padding: 9px 10px;
+        font-family: inherit;
+        font-size: 14px;
+        outline: none;
+      }
+
+      .field textarea {
+        min-height: 90px;
+        resize: vertical;
+      }
+
+      .field-wide {
+        grid-column: span 3;
+      }
+
+      .form-actions {
+        margin-top: 12px;
+        display: flex;
+        gap: 8px;
+      }
+
+      .btn-action {
+        background: var(--sf-primary);
+        color: #fff;
+      }
+
+      .btn-subtle {
+        background: #eef4fd;
+        color: #0b5cab;
+      }
+
+      .panel {
+        background: var(--sf-card);
+        border: 1px solid var(--sf-border);
+        border-radius: 14px;
+        padding: 18px;
+        box-shadow: 0 3px 12px rgba(24, 24, 24, 0.06);
+      }
+
+      .panel-title {
+        margin: 0 0 14px;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .chart-wrap {
+        height: 310px;
+      }
+
+      @media (max-width: 1200px) {
+        .kpi-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 768px) {
+        .kpi-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .charts-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .update-form-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .field-wide {
+          grid-column: span 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <h1>영업 성과 대시보드</h1>
+      <div class="topbar-right">
+        <button
+          class="btn btn-primary"
+          id="toggleUpdatePanelBtn"
+          type="button"
+        >
+          Data Update
+        </button>
+        <div
+          class="date"
+          id="todayDate"
+        ></div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section
+        class="panel update-panel"
+        id="updatePanel"
+      >
+        <h2 class="panel-title">데이터 업데이트</h2>
+        <form id="updateForm">
+          <div class="update-form-grid">
+            <div class="field">
+              <label for="salesAmountInput">매출액 (숫자)</label>
+              <input
+                id="salesAmountInput"
+                name="salesAmount"
+                type="number"
+                min="0"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="salesVolumeInput">매출량 (건)</label>
+              <input
+                id="salesVolumeInput"
+                name="salesVolume"
+                type="number"
+                min="0"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="targetRateInput">목표달성률 (%)</label>
+              <input
+                id="targetRateInput"
+                name="targetRate"
+                type="number"
+                min="0"
+                step="0.1"
+                required
+              />
+            </div>
+            <div class="field">
+              <label for="newClientsInput">신규업체 (곳)</label>
+              <input
+                id="newClientsInput"
+                name="newClients"
+                type="number"
+                min="0"
+                required
+              />
+            </div>
+            <div class="field field-wide">
+              <label for="clientChartInput">거래처별 매출량 (형식: 거래처:수량, 콤마로 구분)</label>
+              <textarea
+                id="clientChartInput"
+                name="clientChart"
+                required
+              ></textarea>
+            </div>
+            <div class="field field-wide">
+              <label for="monthlyChartInput">월별 매출량 (형식: 1월:620,2월:710 ...)</label>
+              <textarea
+                id="monthlyChartInput"
+                name="monthlyChart"
+                required
+              ></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button
+              class="btn btn-action"
+              type="submit"
+            >
+              적용하기
+            </button>
+            <button
+              class="btn btn-subtle"
+              id="resetDataBtn"
+              type="button"
+            >
+              초기값 복원
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="kpi-grid">
+        <article class="kpi-card">
+          <div class="kpi-label">매출액</div>
+          <div
+            class="kpi-value"
+            id="kpiSalesAmount"
+          ></div>
+          <div class="kpi-delta">전월 대비 +12.6%</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">매출량</div>
+          <div
+            class="kpi-value"
+            id="kpiSalesVolume"
+          ></div>
+          <div class="kpi-delta">전월 대비 +7.4%</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">목표달성률</div>
+          <div
+            class="kpi-value"
+            id="kpiTargetRate"
+          ></div>
+          <div
+            class="kpi-delta"
+            id="kpiTargetGap"
+          ></div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">거래처별 매출량(총합)</div>
+          <div
+            class="kpi-value"
+            id="kpiClientTotal"
+          ></div>
+          <div
+            class="kpi-delta"
+            id="kpiClientTop3Share"
+          ></div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">월별 매출량(최근 6개월)</div>
+          <div
+            class="kpi-value"
+            id="kpiMonthlyTotal"
+          ></div>
+          <div
+            class="kpi-delta"
+            id="kpiMonthlyTrend"
+          ></div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">신규업체</div>
+          <div
+            class="kpi-value"
+            id="kpiNewClients"
+          ></div>
+          <div class="kpi-delta">전월 대비 +5곳</div>
+        </article>
+      </section>
+
+      <section class="charts-grid">
+        <article class="panel">
+          <h2 class="panel-title">거래처별 매출량</h2>
+          <div class="chart-wrap">
+            <canvas id="clientSalesChart"></canvas>
+          </div>
+        </article>
+        <article class="panel">
+          <h2 class="panel-title">월별 매출량</h2>
+          <div class="chart-wrap">
+            <canvas id="monthlySalesChart"></canvas>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const initialData = {
+        salesAmount: 1248000000,
+        salesVolume: 8940,
+        targetRate: 92.4,
+        newClients: 18,
+        clientChart: [
+          { label: "에이스물류", value: 1120 },
+          { label: "한빛상사", value: 980 },
+          { label: "미래유통", value: 860 },
+          { label: "오션트레이드", value: 760 },
+          { label: "그린테크", value: 730 },
+          { label: "코어솔루션", value: 690 },
+        ],
+        monthlyChart: [
+          { label: "1월", value: 620 },
+          { label: "2월", value: 710 },
+          { label: "3월", value: 780 },
+          { label: "4월", value: 845 },
+          { label: "5월", value: 900 },
+          { label: "6월", value: 975 },
+        ],
+      };
+
+      let dashboardData = structuredClone(initialData);
+
+      const todayEl = document.getElementById("todayDate");
+      todayEl.textContent = new Date().toLocaleDateString("ko-KR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        weekday: "long",
+      });
+
+      const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#16325c",
+            titleColor: "#fff",
+            bodyColor: "#fff",
+            padding: 10,
+            cornerRadius: 8,
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: "#eef1f6" },
+            ticks: { color: "#5f6368" },
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: "#5f6368" },
+          },
+        },
+      };
+
+      const clientSalesChart = new Chart(document.getElementById("clientSalesChart"), {
+        type: "bar",
+        data: {
+          labels: dashboardData.clientChart.map((item) => item.label),
+          datasets: [
+            {
+              label: "매출량",
+              data: dashboardData.clientChart.map((item) => item.value),
+              borderRadius: 8,
+              backgroundColor: [
+                "#0176d3",
+                "#0d9dda",
+                "#1b96ff",
+                "#5c94ff",
+                "#72a5f2",
+                "#8ab4f8",
+              ],
+              barPercentage: 0.72,
+            },
+          ],
+        },
+        options: chartOptions,
+      });
+
+      const monthlySalesChart = new Chart(document.getElementById("monthlySalesChart"), {
+        type: "bar",
+        data: {
+          labels: dashboardData.monthlyChart.map((item) => item.label),
+          datasets: [
+            {
+              label: "매출량",
+              data: dashboardData.monthlyChart.map((item) => item.value),
+              borderRadius: 8,
+              backgroundColor: "#0176d3",
+              barPercentage: 0.64,
+            },
+          ],
+        },
+        options: chartOptions,
+      });
+
+      const kpiSalesAmount = document.getElementById("kpiSalesAmount");
+      const kpiSalesVolume = document.getElementById("kpiSalesVolume");
+      const kpiTargetRate = document.getElementById("kpiTargetRate");
+      const kpiTargetGap = document.getElementById("kpiTargetGap");
+      const kpiClientTotal = document.getElementById("kpiClientTotal");
+      const kpiClientTop3Share = document.getElementById("kpiClientTop3Share");
+      const kpiMonthlyTotal = document.getElementById("kpiMonthlyTotal");
+      const kpiMonthlyTrend = document.getElementById("kpiMonthlyTrend");
+      const kpiNewClients = document.getElementById("kpiNewClients");
+
+      const updatePanel = document.getElementById("updatePanel");
+      const toggleUpdatePanelBtn = document.getElementById("toggleUpdatePanelBtn");
+      const updateForm = document.getElementById("updateForm");
+      const resetDataBtn = document.getElementById("resetDataBtn");
+
+      function formatCurrency(value) {
+        return `₩${value.toLocaleString("ko-KR")}`;
+      }
+
+      function formatCount(value) {
+        return `${value.toLocaleString("ko-KR")}건`;
+      }
+
+      function parsePairs(input) {
+        return input
+          .split(",")
+          .map((segment) => segment.trim())
+          .filter(Boolean)
+          .map((segment) => {
+            const [labelRaw, valueRaw] = segment.split(":");
+            const label = (labelRaw || "").trim();
+            const value = Number((valueRaw || "").trim());
+            if (!label || Number.isNaN(value)) {
+              throw new Error("형식 오류");
+            }
+            return { label, value };
+          });
+      }
+
+      function toPairString(arr) {
+        return arr.map((item) => `${item.label}:${item.value}`).join(",");
+      }
+
+      function bindFormValues() {
+        document.getElementById("salesAmountInput").value = dashboardData.salesAmount;
+        document.getElementById("salesVolumeInput").value = dashboardData.salesVolume;
+        document.getElementById("targetRateInput").value = dashboardData.targetRate;
+        document.getElementById("newClientsInput").value = dashboardData.newClients;
+        document.getElementById("clientChartInput").value = toPairString(dashboardData.clientChart);
+        document.getElementById("monthlyChartInput").value = toPairString(dashboardData.monthlyChart);
+      }
+
+      function renderDashboard() {
+        const clientTotal = dashboardData.clientChart.reduce((sum, item) => sum + item.value, 0);
+        const top3 = [...dashboardData.clientChart]
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 3)
+          .reduce((sum, item) => sum + item.value, 0);
+        const top3Share = clientTotal ? ((top3 / clientTotal) * 100).toFixed(1) : 0;
+
+        const monthlyTotal = dashboardData.monthlyChart.reduce((sum, item) => sum + item.value, 0);
+        const recent3 = dashboardData.monthlyChart.slice(-3);
+        const prev3 = dashboardData.monthlyChart.slice(-6, -3);
+        let trendText = "최근 3개월 데이터 준비 중";
+        if (recent3.length === 3 && prev3.length === 3) {
+          const recentAvg = recent3.reduce((sum, item) => sum + item.value, 0) / 3;
+          const prevAvg = prev3.reduce((sum, item) => sum + item.value, 0) / 3;
+          const rate = prevAvg === 0 ? 0 : ((recentAvg - prevAvg) / prevAvg) * 100;
+          const direction = rate >= 0 ? "+" : "";
+          trendText = `최근 3개월 평균 ${direction}${rate.toFixed(1)}%`;
+        }
+
+        kpiSalesAmount.textContent = formatCurrency(dashboardData.salesAmount);
+        kpiSalesVolume.textContent = formatCount(dashboardData.salesVolume);
+        kpiTargetRate.textContent = `${dashboardData.targetRate.toFixed(1)}%`;
+        const targetGap = Math.max(0, 100 - dashboardData.targetRate).toFixed(1);
+        kpiTargetGap.textContent = `목표까지 ${targetGap}% 남음`;
+        kpiClientTotal.textContent = formatCount(clientTotal);
+        kpiClientTop3Share.textContent = `상위 3개 거래처 비중 ${top3Share}%`;
+        kpiMonthlyTotal.textContent = formatCount(monthlyTotal);
+        kpiMonthlyTrend.textContent = trendText;
+        kpiNewClients.textContent = `${dashboardData.newClients.toLocaleString("ko-KR")}곳`;
+
+        clientSalesChart.data.labels = dashboardData.clientChart.map((item) => item.label);
+        clientSalesChart.data.datasets[0].data = dashboardData.clientChart.map((item) => item.value);
+        clientSalesChart.update();
+
+        monthlySalesChart.data.labels = dashboardData.monthlyChart.map((item) => item.label);
+        monthlySalesChart.data.datasets[0].data = dashboardData.monthlyChart.map((item) => item.value);
+        monthlySalesChart.update();
+      }
+
+      updateForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+
+        try {
+          dashboardData = {
+            salesAmount: Number(document.getElementById("salesAmountInput").value),
+            salesVolume: Number(document.getElementById("salesVolumeInput").value),
+            targetRate: Number(document.getElementById("targetRateInput").value),
+            newClients: Number(document.getElementById("newClientsInput").value),
+            clientChart: parsePairs(document.getElementById("clientChartInput").value),
+            monthlyChart: parsePairs(document.getElementById("monthlyChartInput").value),
+          };
+          renderDashboard();
+        } catch (error) {
+          alert("입력 형식을 확인해주세요. 예: 에이스물류:1200,한빛상사:900");
+        }
+      });
+
+      resetDataBtn.addEventListener("click", () => {
+        dashboardData = structuredClone(initialData);
+        bindFormValues();
+        renderDashboard();
+      });
+
+      toggleUpdatePanelBtn.addEventListener("click", () => {
+        updatePanel.style.display = updatePanel.style.display === "none" ? "block" : "none";
+      });
+
+      bindFormValues();
+      renderDashboard();
+    </script>
+  </body>
+</html>
